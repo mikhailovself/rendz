@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>rendz</title><link rel="icon" href="logo.svg">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"><meta name="theme-color" content="#0b0b10"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--pink:#ff3b30;--violet:#b3001b;--bg:#0b0b10}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:#fff;
+  font-family:"Segoe UI",system-ui,Arial,sans-serif;overflow:hidden;user-select:none}
+#app{position:relative;width:100%;height:100%;overflow:hidden}
+button{border:0;color:#fff;cursor:pointer;font-family:inherit}
+
+/* ---------- лента ---------- */
+#reel{position:absolute;inset:0;touch-action:none;overflow:hidden}
+.slide{position:absolute;inset:0;background:#000;will-change:transform;
+  transition:transform .42s cubic-bezier(.22,.8,.25,1)}
+#reel.drag .slide{transition:none}
+.slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.heart{position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;pointer-events:none;
+  animation:pop .85s ease-out forwards;z-index:3}
+.heart svg{width:100%;height:100%;fill:var(--pink);filter:drop-shadow(0 6px 24px #ff3b30aa)}
+.heart.dis svg{fill:#9aa0b8;filter:drop-shadow(0 6px 24px #0008)}
+@keyframes pop{0%{transform:scale(.3) rotate(-12deg);opacity:0}
+  20%{transform:scale(1.15) rotate(-6deg);opacity:1}60%{transform:scale(1) rotate(-6deg);opacity:1}
+  100%{transform:scale(1.3) translateY(-40px) rotate(-6deg);opacity:0}}
+
+/* ---------- верхняя панель ---------- */
+#top{position:absolute;left:0;right:0;top:0;z-index:8;display:flex;align-items:center;gap:12px;
+  padding:14px 20px 38px;background:linear-gradient(#000b,#0000);transition:opacity .35s;pointer-events:none}
+#top>*{pointer-events:auto}
+#brand{display:flex;align-items:center;gap:12px}
+#brand img{width:38px;height:38px;border-radius:11px;box-shadow:0 4px 18px #ff3b3066}
+.word{font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;
+  background:linear-gradient(90deg,var(--pink),var(--violet));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.sub{font-size:10px;letter-spacing:2.6px;text-transform:uppercase;opacity:.7;margin-top:4px}
+#tabs{display:flex;gap:2px;margin-left:18px;padding:4px;border-radius:99px;background:#00000073;
+  backdrop-filter:blur(12px);border:1px solid #ffffff22}
+#tabs button{height:30px;padding:0 14px;border-radius:99px;background:none;font-size:13px;
+  font-weight:600;opacity:.72;white-space:nowrap}
+#tabs button:hover{opacity:1}
+#tabs button.on{background:linear-gradient(135deg,var(--pink),var(--violet));opacity:1}
+@media(max-width:980px){#brand .sub{display:none}#vol{display:none}#tabs{margin-left:6px}#tabs button{padding:0 10px}}
+.sp{flex:1}
+.ibtn{width:42px;height:42px;border-radius:50%;background:#00000073;display:grid;place-items:center;
+  transition:background .15s,transform .1s;flex:none}
+.ibtn:hover{background:#000000a6}
+.ibtn:active{transform:scale(.92)}
+.ibtn svg{width:21px;height:21px;fill:#fff}
+.pill{height:42px;padding:0 20px;border-radius:99px;background:#ffffff1c;font-size:14px;font-weight:600}
+.pill:hover{background:#ffffff38}
+.pill.next{background:linear-gradient(135deg,var(--pink),var(--violet));box-shadow:0 6px 22px #b3001b55}
+.pill.next:hover{filter:brightness(1.15);background:linear-gradient(135deg,var(--pink),var(--violet))}
+
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:20px;
+  margin:0;cursor:pointer;outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:5px;
+  background:linear-gradient(90deg,var(--pink),var(--violet)) 0/var(--p,0%) 100% no-repeat,#ffffff33}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:#fff;margin-top:-4.5px;box-shadow:0 0 0 4px #ff3b3044}
+#vol{width:84px}
+
+/* ---------- правая колонка (лайк / дизлайк) ---------- */
+#rail{position:absolute;right:20px;bottom:120px;z-index:8;display:flex;flex-direction:column;
+  align-items:center;gap:18px;transition:opacity .35s;pointer-events:none}
+#rail>*{pointer-events:auto}
+.rb{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;
+  font-size:11.5px;font-weight:600;text-shadow:0 1px 6px #000}
+.rb i{width:58px;height:58px;border-radius:50%;background:#0000008c;backdrop-filter:blur(10px);
+  display:grid;place-items:center;transition:transform .12s,background .15s;border:1px solid #ffffff2e}
+.rb:hover i{background:#000000b3}
+.rb:active i{transform:scale(.9)}
+.rb svg{width:28px;height:28px;fill:#fff}
+.rb.on i{border-color:transparent}
+#like.on i{background:linear-gradient(135deg,var(--pink),#ff6a4d);box-shadow:0 6px 22px #ff3b3088}
+#dislike.on i{background:#5b6078}
+#like.on i{animation:beat .35s}
+@keyframes beat{50%{transform:scale(1.25)}}
+
+/* ---------- нижняя панель ---------- */
+#info{position:absolute;left:0;right:0;bottom:0;z-index:8;padding:80px 26px 14px;
+  background:linear-gradient(#0000,#000d);transition:opacity .35s;pointer-events:none}
+#info>*{pointer-events:auto}
+#song{font-size:26px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 2px 12px #000a;max-width:calc(100% - 110px);pointer-events:none}
+#artist{font-size:15px;opacity:.8;margin:2px 0 8px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:calc(100% - 110px);pointer-events:none}
+#tags{display:flex;gap:6px;min-height:24px;margin-bottom:6px;pointer-events:none}
+#tags span{font-size:11.5px;padding:3px 10px;border-radius:99px;background:#ffffff1f;border:1px solid #ffffff1a}
+#seekrow{display:flex;align-items:center;gap:12px}
+#seek{flex:1}
+#time{font-size:12.5px;opacity:.8;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.idle #top,.idle #info,.idle #rail{opacity:0;pointer-events:none}
+.idle #top>*,.idle #info>*,.idle #rail>*{pointer-events:none}
+.idle{cursor:none}
+
+/* ---------- заставка ---------- */
+#splash{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:22px;text-align:center;padding:30px;
+  background:radial-gradient(circle at 50% 38%,#4a0d12 0%,var(--bg) 68%);transition:opacity .45s}
+#splash.hide{opacity:0;pointer-events:none}
+#splash img{width:112px;height:112px;border-radius:28px;animation:pulse 1.7s ease-in-out infinite}
+#splash .word{font-size:42px}
+#splash .wrow{justify-content:center}
+.wrow{display:flex;align-items:center;gap:8px}
+.ver{font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:99px;border:1px solid #ffffff40;opacity:.8;white-space:nowrap}
+#madeby,.pmade{display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.55}
+#madeby{position:absolute;left:0;right:0;bottom:22px}
+#madeby img{width:34px;height:34px}
+.pmade{padding:0 0 16px}
+.pmade img{width:22px;height:22px}
+#splash .sub{font-size:12px;margin-top:8px}
+#splashText{font-size:15px;opacity:.85;max-width:620px}
+#splashText:empty{display:none}
+#retry{display:none}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 30px #ff3b3044}
+  50%{transform:scale(1.07);box-shadow:0 0 70px #b3001b99}}
+.bars{display:flex;gap:5px;height:22px;align-items:flex-end}
+.bars i{width:5px;border-radius:3px;background:linear-gradient(var(--pink),var(--violet));
+  animation:eq 1s ease-in-out infinite}
+.bars i:nth-child(2){animation-delay:.15s}.bars i:nth-child(3){animation-delay:.3s}
+.bars i:nth-child(4){animation-delay:.45s}.bars i:nth-child(5){animation-delay:.6s}
+@keyframes eq{0%,100%{height:6px}50%{height:22px}}
+
+/* ---------- настройки ---------- */
+#scrim{position:absolute;inset:0;z-index:20;background:#0009;opacity:0;pointer-events:none;transition:opacity .25s}
+#scrim.show{opacity:1;pointer-events:auto}
+#panel{position:absolute;top:0;right:0;bottom:0;z-index:21;width:min(100%,420px);display:flex;
+  flex-direction:column;background:#14141d;border-left:1px solid #ffffff14;
+  transform:translateX(102%);transition:transform .3s cubic-bezier(.22,.8,.25,1);user-select:none}
+#panel.open{transform:none}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;font-size:19px;font-weight:700}
+.pbody{flex:1;overflow-y:auto;padding:0 22px 12px}
+.pbody::-webkit-scrollbar{width:8px}
+.pbody::-webkit-scrollbar-thumb{background:#ffffff26;border-radius:8px}
+.pbody section{padding:16px 0;border-top:1px solid #ffffff12}
+.pbody h3{margin:0 0 10px;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;opacity:.65}
+.lab{font-size:12.5px;opacity:.6;margin:12px 0 8px}
+.note{font-size:12.5px;opacity:.55;margin-bottom:10px}
+.seg{display:flex;background:#ffffff14;border-radius:99px;padding:4px;gap:4px}
+.seg button{flex:1;height:38px;border-radius:99px;background:none;font-size:13.5px;font-weight:600;opacity:.7}
+.seg button.on{background:linear-gradient(135deg,var(--pink),var(--violet));opacity:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:34px;padding:0 14px;border-radius:99px;background:#ffffff14;border:1px solid #ffffff1c;
+  font-size:13.5px;transition:background .12s}
+.chip:hover{background:#ffffff26}
+.chip.on{background:linear-gradient(135deg,var(--pink),var(--violet));border-color:transparent}
+.sw{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
+.sw input{width:18px;height:18px;accent-color:var(--pink)}
+#pstat{font-size:13.5px;opacity:.8;margin-bottom:12px}
+.pf{padding:14px 22px 20px;border-top:1px solid #ffffff12;display:flex;gap:10px;align-items:center}
+.pf .pill{flex:1}
+#perr{color:#ff8a80;font-size:12.5px;padding:0 22px;min-height:0}
+
+html,body{height:100dvh;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+.touch-only{display:none}
+@media(pointer:coarse){.touch-only{display:inline}.desk-only{display:none}
+  input[type=range]{height:30px}
+  input[type=range]::-webkit-slider-thumb{width:20px;height:20px;margin-top:-8px}
+  .chip{height:40px}.sw input{width:22px;height:22px}}
+#help{font-size:19px;font-weight:700}
+@media(max-width:640px){
+  #top{flex-wrap:wrap;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 30px}
+  #brand img{width:32px;height:32px;border-radius:9px}.word{font-size:19px}.ver{display:none}
+  .ibtn{width:38px;height:38px}.ibtn svg{width:19px;height:19px}
+  #tabs{order:5;width:100%;margin:0;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+  #tabs::-webkit-scrollbar{display:none}
+  #tabs button{flex:1;padding:0 8px;font-size:12.5px}
+  #rail{right:10px;bottom:calc(112px + env(safe-area-inset-bottom));gap:12px}
+  .rb i{width:50px;height:50px}.rb svg{width:25px;height:25px}.rb{font-size:10.5px}
+  #info{padding:70px 16px calc(12px + env(safe-area-inset-bottom))}
+  #song{font-size:19px;max-width:calc(100% - 76px)}#artist{font-size:13.5px;max-width:calc(100% - 76px)}
+  #madeby{display:none}#splash .word{font-size:34px}
+  #panel{width:100%;border-left:0}
+  .pf{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .heart{width:96px;height:96px;margin:-48px 0 0 -48px}}
+@media(max-height:480px) and (orientation:landscape){#rail{bottom:80px}#info{padding-top:40px}#song{font-size:17px}#tags{display:none}}
+/* ---------- приветствие ---------- */
+#welcome{position:absolute;inset:0;z-index:40;display:none;overflow-y:auto;background:radial-gradient(circle at 50% 18%,#4a0d12 0%,var(--bg) 70%);
+  padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));user-select:none}
+#welcome.show{display:block}
+.wbox{max-width:460px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px}
+.wbox>img{width:84px;height:84px;border-radius:22px;box-shadow:0 8px 40px #b3001b77}
+.wbox h1{margin:0;font-size:26px;line-height:1.2}
+.wbox p{margin:0;opacity:.75;font-size:14.5px}
+.wsteps{width:100%;display:flex;flex-direction:column;gap:10px;text-align:left}
+.wstep{display:flex;gap:14px;align-items:center;padding:12px 14px;border-radius:16px;background:#ffffff12;border:1px solid #ffffff14}
+.wstep b{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:19px;
+  background:linear-gradient(135deg,var(--pink),var(--violet))}
+.wstep div{font-size:14px;line-height:1.35;opacity:.92}.wstep strong{display:block;font-size:15px;opacity:1}
+#wgo{width:100%;height:50px;font-size:16px}
+
+/* ---------- плеер: прячем интерфейс встроенных плееров ---------- */
+.slide{overflow:hidden}
+.slide .th{position:absolute;inset:0;background:#000 center/contain no-repeat}
+.slide .vf{position:absolute;left:0;top:-90px;width:100%;height:calc(100% + 180px);border:0;opacity:0;transition:opacity .2s;pointer-events:none}
+@media(min-aspect-ratio:3/2){.slide .vf{top:-26px;height:calc(100% + 52px)}}
+.slide.on .vf{opacity:1}
+.slide .pi{position:absolute;left:50%;top:50%;width:88px;height:88px;margin:-44px 0 0 -44px;border-radius:50%;background:#000a;
+  backdrop-filter:blur(8px);border:1px solid #ffffff30;display:none;place-items:center;pointer-events:none;z-index:3}
+.slide.pz .pi{display:grid}
+.slide .pi svg{width:42px;height:42px;fill:#fff;margin-left:5px}
+#top{background:linear-gradient(#000c,#0000)}
+.pill{transition:filter .15s,transform .1s}.pill:active{transform:scale(.97)}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+</style></head><body>
+<div id="app">
+  <div id="reel"></div>
+
+  <div id="top">
+    <div id="brand">
+      <img src="logo.svg" alt="">
+      <div><div class="wrow"><div class="word">rendz</div><span class="ver">web 1.3</span></div><div class="sub">Random music clips</div></div>
+    </div>
+    <div id="tabs"><button data-c="mix">Всё</button><button data-c="new">Новинки</button><button data-c="popular">Популярное</button><button data-c="legend">Легендарки</button></div>
+    <div class="sp"></div>
+    <button class="ibtn" id="mute" title="Звук (M)"></button>
+    <input type="range" id="vol" min="0" max="1" step="0.02" value="1">
+    <button class="ibtn" id="fs" title="Полный экран (F)"></button>
+    <button class="ibtn" id="help" title="Как пользоваться">?</button>
+    <button class="ibtn" id="gear" title="Настройки (S)"></button>
+  </div>
+
+  <div id="rail">
+    <button class="rb" id="like" title="Нравится (L или двойной клик)"><i></i><span>Нравится</span></button>
+    <button class="rb" id="dislike" title="Не нравится (D)"><i></i><span>Не моё</span></button>
+    <button class="rb" id="web" title="Открыть в браузере"><i></i><span>Открыть</span></button>
+  </div>
+
+  <div id="info">
+    <div id="song"></div>
+    <div id="artist"></div>
+    <div id="tags"></div>
+    <div id="seekrow">
+      <input type="range" id="seek" min="0" max="1000" value="0">
+      <div id="time">0:00 / 0:00</div>
+    </div>
+  </div>
+
+  <div id="splash">
+    <img src="logo.svg" alt="">
+    <div><div class="wrow"><div class="word">rendz</div><span class="ver">web 1.3</span></div><div class="sub">Random music clips</div></div>
+    <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="splashText"></div>
+    <button class="pill next" id="retry">Повторить</button>
+    <div id="madeby">made by <img src="made.png" alt=""></div>
+  </div>
+
+  <div id="welcome"><div class="wbox">
+  <img src="logo.svg" alt="">
+  <div><div class="wrow"><div class="word" style="font-size:36px">rendz</div></div><div class="sub">Random music clips</div></div>
+  <h1>Лента музыкальных клипов</h1>
+  <p>Включай и листай — клипы подбираются сами, а лайки учат ленту твоему вкусу.</p>
+  <div class="wsteps">
+    <div class="wstep"><b>↕</b><div><strong>Листай клипы</strong><span class="touch-only">Свайп вверх — следующий клип, вниз — предыдущий.</span><span class="desk-only">Колесо мыши или стрелки ↑ ↓. Пробел — пауза, ← → — перемотка.</span></div></div>
+    <div class="wstep"><b>♥</b><div><strong>Нравится</strong><span class="touch-only">Двойной тап по видео или кнопка с сердцем.</span><span class="desk-only">Двойной клик по видео, кнопка с сердцем или клавиша L.</span></div></div>
+    <div class="wstep"><b>✕</b><div><strong>Не моё</strong>Кнопка «Не моё» (на компьютере — D): клип пропустится, похожее будет попадаться реже.</div></div>
+    <div class="wstep"><b>⚙</b><div><strong>Настройки</strong>Страны, жанры и вкладки сверху: Новинки, Популярное, Легендарки.</div></div>
+  </div>
+  <p>Нажми «Начать» — после этого включится звук.</p>
+  <button class="pill next" id="wgo">Начать</button>
+</div></div>
+<div id="scrim"></div>
+  <aside id="panel">
+    <div class="ph"><span>Настройки</span><button class="ibtn" id="pclose" title="Закрыть"></button></div>
+    <div class="pbody">
+      <section>
+        <h3>Откуда клипы</h3>
+        <div class="seg" id="seg">
+          <button data-v="1">Только СНГ</button>
+          <button data-v="0">СНГ + другие страны</button>
+        </div>
+        <div class="lab">Страны СНГ</div>
+        <div class="chips" id="chCis"></div>
+        <div id="otherBox">
+          <div class="lab">Другие страны</div>
+          <div class="chips" id="chOther"></div>
+        </div>
+      </section>
+      <section>
+        <h3>Жанры</h3>
+        <div class="chips" id="chGenre"></div>
+      </section>
+      <section>
+        <h3>Где искать</h3>
+        <div class="chips" id="chSrc"></div>
+      </section>
+      <section>
+        <h3>Плеер</h3>
+        <label class="sw"><input type="checkbox" id="autonext"> Когда клип закончился — листать дальше сам</label>
+      </section>
+      <section>
+        <h3>Рекомендации</h3>
+        <div id="pstat"></div>
+        <button class="pill" id="resetProf">Сбросить лайки и дизлайки</button>
+      </section>
+    </div>
+    <div id="perr"></div>
+    <div class="pf"><button class="pill next" id="apply">Применить</button></div>
+    <div class="pmade">made by <img src="made.png" alt=""></div>
+  </aside>
+</div>
+
+<script src="shim.js?v=4"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ICON = {
+  play:  '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  vol:   '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10zM16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+  mute:  '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10zM16 9.4 17.4 8 19.5 10.1 21.6 8 23 9.4 20.9 11.5 23 13.6 21.6 15 19.5 12.9 17.4 15 16 13.6 18.1 11.5z"/></svg>',
+  fsOn:  '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5zM8 8H5v2h5V5H8zM14 19h2v-3h3v-2h-5zM16 8V5h-2v5h5V8z"/></svg>',
+  fsOff: '<svg viewBox="0 0 24 24"><path d="M5 5v5h2V7h3V5zM14 5v2h3v3h2V5zM17 17h-3v2h5v-5h-2zM7 14H5v5h5v-2H7z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+  down:  '<svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>',
+  open:  '<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM5 5h6V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6h-2v6H5V5z"/></svg>',
+  gear:  '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>'
+};
+const reel = $('reel');
+const S = {settings: null, opts: null, first: false};   // настройки и списки стран/жанров
+const feed = [];            // слайды ленты (по одному на клип)
+let idx = -1, lock = false, dragY = 0;
+let vol = 1, muted = false, fs = false;
+let idleT = null, splashT = null, tapT = null, lastTap = 0, wheelBlock = 0;
+
+/* ---------- заставка ---------- */
+function showSplash(text, err){
+  $('splashText').textContent = text;
+  $('retry').style.display = err ? 'inline-block' : 'none';
+  $('splash').classList.remove('hide');
+}
+function hideSplash(){ $('splash').classList.add('hide'); }
+function syncSplash(){
+  clearTimeout(splashT);
+  const s = feed[idx];
+  if (!s) return;
+  if (s.st === 'playing') return hideSplash();
+  if (s.st === 'error') return showSplash(s.err, true);
+  splashT = setTimeout(() => {
+    const c = feed[idx];
+    if (c && c.st !== 'playing' && c.st !== 'error') showSplash(c.msg || '');
+  }, 350);
+}
+
+/* ---------- один слайд = один клип ---------- */
+class Slide {
+  constructor(){
+    this.clip = null; this.st = 'pending'; this.err = ''; this.msg = ''; this.retries = 0; this.disposed = false;
+    this.p = null; this.f = null; this.ready = false; this.playing = false; this.started = false;
+    this.cur = 0; this.dur = 0; this.t = null; this.wd = null;
+    const me = this;
+    this.v = {   // мини-«video» поверх любого встроенного плеера
+      get paused(){ return !me.playing; },
+      get duration(){ return me.dur || 0; },
+      get currentTime(){ return me.cur || 0; },
+      set currentTime(x){ me.send('seek', x); },
+      play(){ me.send('play'); return Promise.resolve(); },
+      pause(){ me.send('pause'); }
+    };
+    this.build();
+  }
+  get active(){ return feed[idx] === this; }
+  build(){
+    this.disposed = false;
+    this.el = document.createElement('div'); this.el.className = 'slide';
+    this.th = document.createElement('div'); this.th.className = 'th';
+    this.pi = document.createElement('div'); this.pi.className = 'pi'; this.pi.innerHTML = ICON.play;
+    this.box = document.createElement('div'); this.box.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+    this.el.append(this.th, this.box, this.pi); reel.appendChild(this.el);
+    if (this.clip) this.load();
+  }
+  load(){
+    const me = this, c = this.clip, id = c.vid;
+    this.box.innerHTML = ''; this.ready = false; this.playing = false; this.cur = 0; this.dur = 0;
+    this.th.style.backgroundImage = c.thumb ? `url("${c.thumb}")` : 'none';
+    if (c.src === 'yt'){
+      const host = document.createElement('div'); this.box.appendChild(host);
+      window.ytReady.then(() => {
+        if (me.disposed || !me.clip || me.clip.vid !== id) return;
+        me.p = new YT.Player(host, {videoId: id, width: '100%', height: '100%',
+          playerVars: {autoplay: 0, controls: 0, playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, disablekb: 1, fs: 0, origin: location.origin},
+          events: {onReady(){ me.onReady(); }, onStateChange(e){ me.ps(e.data === 1 ? 1 : e.data === 0 ? 0 : e.data === 2 ? 2 : -1); }, onError(){ me.fail(); }}});
+        me.f = me.p.getIframe(); me.f.className = 'vf';
+      });
+    } else {
+      const f = document.createElement('iframe'); f.className = 'vf'; f.allow = 'autoplay; encrypted-media';
+      const o = encodeURIComponent(location.origin);
+      f.src = c.src === 'rt' ? `https://rutube.ru/play/embed/${id}?autoStart=false`
+        : `https://www.dailymotion.com/embed/video/${id}?api=postMessage&autoplay=0&controls=0&mute=1&queue-enable=false&sharing-enable=false&ui-logo=0&ui-start-screen-info=0&endscreen-enable=false&origin=${o}`;
+      if (c.src === 'rt') f.onload = () => this.onReady();
+      this.f = f; this.box.appendChild(f);
+    }
+  }
+  send(c, a){
+    if (!this.ready || !this.clip) return;
+    try {
+      const s = this.clip.src;
+      if (s === 'yt'){
+        const p = this.p;
+        ({play: () => p.playVideo(), pause: () => p.pauseVideo(), seek: () => p.seekTo(a, true), mute: () => p.mute(),
+          unmute: () => p.unMute(), vol: () => p.setVolume(a * 100)})[c]();
+      } else if (s === 'rt'){
+        const m = {play: ['player:play'], pause: ['player:pause'], seek: ['player:setCurrentTime', {time: a}], mute: ['player:mute'],
+          unmute: ['player:unMute'], vol: ['player:setVolume', {volume: a}]}[c];
+        this.f.contentWindow.postMessage(JSON.stringify({type: m[0], data: m[1] || {}}), '*');
+      } else {
+        this.f.contentWindow.postMessage({play: 'play', pause: 'pause', seek: 'seek=' + a, mute: 'muted=1', unmute: 'muted=0', vol: 'volume=' + a}[c], '*');
+      }
+    } catch (e) {}
+  }
+  onReady(){ if (this.ready) return; this.ready = true; this.st = 'loaded'; if (this.active) this.activate(); }
+  ps(s){   // состояние плеера: 1 играет, 2 пауза, 0 конец
+    if (this.disposed) return;
+    clearInterval(this.t);
+    if (s === 1){
+      if (!this.active){ this.send('pause'); return; }
+      this.playing = true; this.started = true; this.st = 'playing'; this.retries = 0; clearTimeout(this.wd);
+      hideSplash(); this.el.classList.add('on'); this.el.classList.remove('pz');
+      if (this.clip.src === 'yt') this.t = setInterval(() => this.tick(), 250);
+    } else if (s === 0){
+      this.playing = false; this.el.classList.remove('on');
+      if (this.active){ if (S.settings && S.settings.autonext) go(1); else { this.send('seek', 0); this.send('play'); } }
+    } else if (s === 2){
+      this.playing = false;
+      if (this.started){ this.el.classList.remove('on'); this.el.classList.add('pz'); }
+    }
+  }
+  tick(){
+    if (this.clip && this.clip.src === 'yt' && this.ready){ this.cur = this.p.getCurrentTime() || 0; this.dur = this.p.getDuration() || 0; }
+    if (!this.active) return;
+    const t = this.cur, d = this.dur;
+    if (!seekDrag && d){ $('seek').value = t / d * 1000; $('seek').style.setProperty('--p', (t / d * 100) + '%'); }
+    $('time').textContent = fmt(t) + ' / ' + fmt(d);
+  }
+  msg(d){
+    const s = this.clip && this.clip.src;
+    try {
+      if (s === 'rt'){
+        const m = typeof d === 'string' ? JSON.parse(d) : d, x = m.data || {};
+        if (m.type === 'player:changeState'){
+          const st = x.state;
+          this.ps(st === 'playing' ? 1 : st === 'paused' ? 2 : (st === 'ended' || (st === 'stopped' && this.dur && this.cur >= this.dur - 2)) ? 0 : st === 'stopped' ? 2 : -1);
+        } else if (m.type === 'player:currentTime'){ this.cur = +x.time || 0; this.tick(); }
+        else if (m.type === 'player:durationChange'){ this.dur = +x.duration || 0; }
+      } else if (s === 'dm'){
+        const q = new URLSearchParams(d), e = q.get('event') || '';
+        if (e === 'apiready') this.onReady(); else if (e === 'playing') this.ps(1); else if (e === 'pause') this.ps(2);
+        else if (e === 'end' || e === 'ended') this.ps(0);
+        else if (e === 'timeupdate'){ this.cur = +q.get('time') || 0; this.tick(); }
+        else if (e === 'durationchange'){ this.dur = +q.get('duration') || 0; }
+      }
+    } catch (e) {}
+  }
+  fail(){
+    if (this.disposed) return;
+    if (this.retries >= 3){ this.st = 'error'; this.err = 'Видео не воспроизводится. Нажми «Повторить».'; if (this.active) syncSplash(); return; }
+    this.retries++; refill(this);   // встраивание запрещено / не загрузилось — берём другой клип
+  }
+  setClip(c){ this.clip = c; c.rating = c.rating || 0; this.st = 'loaded'; this.started = false; this.el.classList.remove('on', 'pz'); this.load(); }
+  clearMedia(){
+    clearInterval(this.t); clearTimeout(this.wd); this.ready = false; this.playing = false;
+    if (this.p){ try { this.p.destroy(); } catch (e) {} this.p = null; }
+    this.f = null; if (this.box) this.box.innerHTML = '';
+  }
+  dispose(){ if (this.disposed) return; this.disposed = true; this.clearMedia(); this.el.remove(); }
+  applyVol(){
+    if (!this.ready) return;
+    if (!this.active){ this.send('mute'); return; }
+    this.send('vol', vol);
+    (muted || !window.gestured) ? this.send('mute') : this.send('unmute');
+  }
+  activate(){
+    this.applyVol(); updateInfo();
+    if (this.ready) this.send('play');
+    clearTimeout(this.wd);
+    this.wd = setTimeout(() => { if (this.active && this.st !== 'playing') this.fail(); }, 14000);
+  }
+  deactivate(){ this.send('pause'); this.send('mute'); }
+}
+window.addEventListener('message', e => {
+  const s = feed.find(x => x.f && x.f.contentWindow === e.source);
+  if (s) s.msg(e.data);
+});
+
+const fmt = s => { if (!isFinite(s)) return '0:00'; s = Math.floor(s);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+/* ---------- лента: загрузка, листание ---------- */
+async function fillSlide(s){
+  s.st = 'loading'; s.err = '';
+  if (s.active) syncSplash();
+  let r;
+  try { r = await pywebview.api.next_clip(); } catch (e) { r = {error: String(e)}; }
+  if (s.disposed && !feed.includes(s)) return;       // слайд уже выкинули (сменились настройки)
+  if (r.error){ s.st = 'error'; s.err = r.error; if (s.active) syncSplash(); return; }
+  if (s.disposed) s.build();
+  s.setClip(r);
+  if (s.active) s.activate();
+  ensureAhead();
+}
+function refill(s){ s.clearMedia(); s.clip = null; fillSlide(s); }
+
+function ensureAhead(){
+  if (idx < 0) return;
+  while (feed.length <= idx + 2){ const n = new Slide(); feed.push(n); fillSlide(n); }
+  layout();
+}
+function layout(){
+  feed.forEach((s, i) => {
+    const d = i - idx;
+    if (Math.abs(d) <= 1){
+      if (s.disposed) s.build();
+      s.el.style.transform = `translateY(calc(${d * 100}% + ${dragY}px))`;
+      s.el.style.visibility = 'visible';
+    } else if (!s.disposed && Math.abs(d) > 2){
+      s.dispose();
+    } else if (!s.disposed){
+      s.el.style.transform = `translateY(${d * 100}%)`;
+    }
+  });
+}
+function go(d){
+  if (lock) { layout(); return; }
+  const t = idx + d;
+  if (t < 0){ layout(); return; }
+  lock = true; setTimeout(() => lock = false, 380);
+  wheelBlock = Date.now() + 650;
+  const old = feed[idx]; if (old){ reportWatch(old); old.deactivate(); }
+  idx = t;
+  if (!feed[idx]){ const n = new Slide(); feed.push(n); fillSlide(n); }
+  dragY = 0; layout();
+  feed[idx].activate();
+  $('seek').value = 0; $('seek').style.setProperty('--p', '0%');
+  syncSplash(); ensureAhead();
+}
+function startFeed(){
+  const s = new Slide(); feed.push(s); idx = 0; layout();
+  fillSlide(s); syncSplash();
+}
+function resetFeed(){
+  feed.forEach(s => s.dispose()); feed.length = 0; idx = -1; lock = false;
+  showSplash('');
+  updateInfo(); startFeed();
+}
+function cur(){ const s = feed[idx]; return s && s.clip ? s : null; }
+
+function togglePlay(){ const s = cur(); if (!s) return; s.v.paused ? s.v.play().catch(() => {}) : s.v.pause(); }
+function seekBy(sec){ const s = cur(); if (s) s.v.currentTime = Math.max(0, Math.min((s.v.duration || 1e9), s.v.currentTime + sec)); }
+
+/* ---------- информация о клипе и оценки ---------- */
+function updateInfo(){
+  const s = cur(), c = s && s.clip;
+  $('song').textContent = c ? c.title : '';
+  $('artist').textContent = c ? c.artist : '';
+  $('tags').innerHTML = '';
+  if (c) [c.chip].concat(c.tags || []).filter(Boolean).forEach(t => { const e = document.createElement('span'); e.textContent = t; $('tags').appendChild(e); });
+  updateRating();
+}
+function reportWatch(s){
+  if (!s || !s.clip || s.st !== 'playing') return;
+  try { pywebview.api.watch(s.clip.id, s.v.currentTime || 0, s.v.duration || 0); } catch (e) {}
+}
+function renderTabs(){
+  const c = (S.settings && S.settings.category) || 'mix';
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+}
+$('tabs').addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b || !S.settings || b.dataset.c === S.settings.category) return;
+  const s = JSON.parse(JSON.stringify(S.settings)); s.category = b.dataset.c;
+  let r;
+  try { r = await pywebview.api.save_settings(s); } catch (err) { return; }
+  S.settings = r.settings; renderTabs();
+  if (r.changed) resetFeed();
+});
+function updateRating(){
+  const c = cur() && cur().clip;
+  $('like').classList.toggle('on', !!c && c.rating === 1);
+  $('dislike').classList.toggle('on', !!c && c.rating === -1);
+}
+function burst(x, y, dis){
+  const s = feed[idx]; if (!s) return;
+  const r = s.el.getBoundingClientRect();
+  const h = document.createElement('div');
+  h.className = 'heart' + (dis ? ' dis' : '');
+  h.innerHTML = dis ? ICON.down : ICON.heart;
+  h.style.left = (x == null ? r.width / 2 : x - r.left) + 'px';
+  h.style.top = (y == null ? r.height / 2 : y - r.top) + 'px';
+  s.el.appendChild(h);
+  setTimeout(() => h.remove(), 900);
+}
+async function rate(want, viaTap, x, y){
+  const s = cur(); if (!s) return;
+  const c = s.clip;
+  let r = want;
+  if (c.rating === want && !viaTap) r = 0;     // повторное нажатие снимает оценку
+  if (viaTap && c.rating === 1) r = 1;         // двойной клик никогда не снимает лайк
+  c.rating = r; updateRating();
+  if (r !== 0) burst(x, y, r === -1);
+  try { await pywebview.api.rate(c.id, r); } catch (e) {}
+  if (r === -1){
+    // уже подготовленный следующий клип того же артиста выкидываем
+    const n = feed[idx + 1];
+    if (n && n.clip && (n.clip.names || []).some(a => (c.names || []).includes(a))) refill(n);
+    setTimeout(() => { if (feed[idx] === s) go(1); }, 380);
+  }
+}
+
+/* ---------- жесты: свайп, колесо, клик ---------- */
+let pd = null, seekDrag = false;
+reel.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  pd = {y: e.clientY, x: e.clientX, t: performance.now(), moved: false};
+});
+window.addEventListener('pointermove', e => {
+  if (!pd) return;
+  const dy = e.clientY - pd.y;
+  if (!pd.moved && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(e.clientX - pd.x)){
+    pd.moved = true; reel.classList.add('drag');
+  }
+  if (pd.moved){
+    dragY = (idx === 0 && dy > 0) ? dy * 0.3 : dy;
+    layout();
+  }
+});
+window.addEventListener('pointerup', e => {
+  if (!pd) return;
+  const p = pd; pd = null;
+  reel.classList.remove('drag');
+  if (p.moved){
+    const dy = dragY, v = dy / Math.max(1, performance.now() - p.t);
+    dragY = 0;
+    const th = reel.clientHeight * 0.15;
+    if (dy < -th || v < -0.6) go(1);
+    else if (dy > th || v > 0.6) go(-1);
+    layout();
+  } else {
+    const now = performance.now();
+    if (now - lastTap < 300){ clearTimeout(tapT); lastTap = 0; rate(1, true, e.clientX, e.clientY); }
+    else { lastTap = now; tapT = setTimeout(togglePlay, 300); }
+  }
+});
+window.addEventListener('pointercancel', () => {
+  if (!pd) return; pd = null; dragY = 0; reel.classList.remove('drag'); layout();
+});
+let wheelAcc = 0, wheelT = 0;
+document.addEventListener('wheel', e => {
+  if (e.target.closest('#panel')) return;
+  const now = Date.now();
+  if (now < wheelBlock) return;
+  if (now - wheelT > 200) wheelAcc = 0;
+  wheelT = now; wheelAcc += e.deltaY;
+  if (Math.abs(wheelAcc) > 40){ go(wheelAcc > 0 ? 1 : -1); wheelAcc = 0; }
+}, {passive: true});
+
+/* ---------- громкость, полный экран ---------- */
+function applyVol(){
+  const s = feed[idx]; if (s) s.applyVol();
+  $('vol').value = muted ? 0 : vol;
+  $('vol').style.setProperty('--p', ($('vol').value * 100) + '%');
+  $('mute').innerHTML = (muted || vol === 0) ? ICON.mute : ICON.vol;
+}
+async function toggleFs(){
+  fs = !fs;
+  $('fs').innerHTML = fs ? ICON.fsOn : ICON.fsOff;
+  try { await pywebview.api.toggle_fullscreen(); } catch (e) {}
+}
+$('seek').addEventListener('input', e => {
+  seekDrag = true;
+  const s = cur(), d = s ? (s.v.duration || 0) : 0;
+  e.target.style.setProperty('--p', (e.target.value / 10) + '%');
+  if (d) s.v.currentTime = e.target.value / 1000 * d;
+});
+$('seek').addEventListener('change', () => { seekDrag = false; $('seek').blur(); });
+$('vol').addEventListener('input', e => { vol = +e.target.value; muted = vol === 0; applyVol(); });
+$('vol').addEventListener('change', () => $('vol').blur());
+$('mute').onclick = () => { muted = !muted; if (!muted && vol === 0) vol = 0.5; applyVol(); };
+$('fs').onclick = toggleFs;
+$('like').onclick = () => rate(1, false);
+$('dislike').onclick = () => rate(-1, false);
+$('web').onclick = () => { const s = cur(); if (s) pywebview.api.open_browser(s.clip.id); };
+$('retry').onclick = () => {
+  const s = feed[idx]; if (!s) return;
+  s.retries = 0; s.msg = ''; showSplash(''); refill(s);
+};
+
+/* ---------- автоскрытие панелей ---------- */
+function wake(){
+  document.body.classList.remove('idle');
+  clearTimeout(idleT);
+  idleT = setTimeout(() => {
+    const s = cur();
+    if (s && !s.v.paused && !$('panel').classList.contains('open')) document.body.classList.add('idle');
+  }, 3000);
+}
+['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, wake));
+
+/* ---------- клавиши ---------- */
+document.addEventListener('keydown', e => {
+  if ($('panel').classList.contains('open')){
+    if (e.code === 'Escape'){ e.preventDefault(); closePanel(); }
+    return;
+  }
+  switch (e.code){
+    case 'Space': e.preventDefault(); togglePlay(); break;
+    case 'ArrowDown': case 'PageDown': e.preventDefault(); go(1); break;
+    case 'ArrowUp': case 'PageUp': e.preventDefault(); go(-1); break;
+    case 'ArrowRight': e.preventDefault(); seekBy(5); break;
+    case 'ArrowLeft': e.preventDefault(); seekBy(-5); break;
+    case 'KeyL': rate(1, false); break;
+    case 'KeyD': rate(-1, false); break;
+    case 'KeyS': openPanel(); break;
+    case 'KeyF': case 'F11': e.preventDefault(); toggleFs(); break;
+    case 'Escape': if (fs){ e.preventDefault(); toggleFs(); } break;
+    case 'KeyM': muted = !muted; applyVol(); break;
+    case 'Equal': case 'NumpadAdd': vol = Math.min(1, vol + 0.05); muted = false; applyVol(); break;
+    case 'Minus': case 'NumpadSubtract': vol = Math.max(0, vol - 0.05); applyVol(); break;
+  }
+});
+
+/* ---------- настройки ---------- */
+let draft = null;
+function mkChip(box, label, on, fn){
+  const b = document.createElement('button');
+  b.className = 'chip' + (on ? ' on' : ''); b.textContent = label;
+  b.onclick = fn; box.appendChild(b);
+}
+function toggle(arr, v){ const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
+function renderPanel(){
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === draft.cis_only));
+  $('otherBox').style.display = draft.cis_only ? 'none' : 'block';
+  ['chCis', 'chOther', 'chGenre'].forEach(id => $(id).innerHTML = '');
+  S.opts.cis.forEach(([c, n]) => mkChip($('chCis'), n, draft.cis.includes(c), () => { toggle(draft.cis, c); renderPanel(); }));
+  S.opts.other.forEach(([c, n]) => mkChip($('chOther'), n, draft.other.includes(c), () => { toggle(draft.other, c); renderPanel(); }));
+  mkChip($('chGenre'), 'Любые', draft.genres.length === 0, () => { draft.genres = []; renderPanel(); });
+  S.opts.genres.forEach(([k, n]) => mkChip($('chGenre'), n, draft.genres.includes(k), () => { toggle(draft.genres, k); renderPanel(); }));
+  $('chSrc').innerHTML = '';
+  S.opts.sources.forEach(([k, n]) => mkChip($('chSrc'), n, draft.sources.includes(k), () => { toggle(draft.sources, k); renderPanel(); }));
+  $('autonext').checked = !!draft.autonext;
+  $('perr').textContent = '';
+}
+async function refreshStats(){
+  try {
+    const st = await pywebview.api.get_stats();
+    $('pstat').textContent = `Лайков: ${st.likes} · Дизлайков: ${st.dislikes}`;
+  } catch (e) {}
+}
+function openPanel(){
+  if (!S.settings) return;
+  draft = JSON.parse(JSON.stringify(S.settings));
+  renderPanel(); refreshStats();
+  $('panel').classList.add('open'); $('scrim').classList.add('show');
+  document.body.classList.remove('idle');
+}
+function closePanel(){
+  $('panel').classList.remove('open'); $('scrim').classList.remove('show');
+  if (S.first){ S.first = false; applySettings(true); }   // первый запуск: закрытие = «Применить» с настройками по умолчанию
+  wake();
+}
+async function applySettings(silent){
+  if (!draft) draft = JSON.parse(JSON.stringify(S.settings));
+  draft.autonext = $('autonext').checked;
+  if (!draft.cis.length && (draft.cis_only || !draft.other.length)){
+    $('perr').textContent = 'Выбери хотя бы одну страну.'; return;
+  }
+  if (!draft.sources.length){ $('perr').textContent = 'Выбери хотя бы одну площадку.'; return; }
+  let r;
+  try { r = await pywebview.api.save_settings(draft); } catch (e) { $('perr').textContent = String(e); return; }
+  S.settings = r.settings; S.first = false; renderTabs();
+  $('panel').classList.remove('open'); $('scrim').classList.remove('show');
+  if (r.changed) resetFeed();
+  wake();
+}
+$('seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  draft.cis_only = b.dataset.v === '1'; renderPanel();
+});
+$('autonext').onchange = () => { draft.autonext = $('autonext').checked; };
+$('apply').onclick = () => applySettings(false);
+$('pclose').onclick = closePanel;
+$('scrim').onclick = closePanel;
+$('gear').onclick = openPanel;
+$('resetProf').onclick = async () => {
+  if (!confirm('Забыть все лайки и дизлайки?')) return;
+  try { await pywebview.api.reset_profile(); } catch (e) {}
+  refreshStats();
+};
+
+/* ---------- старт ---------- */
+$('mute').innerHTML = ICON.vol; $('fs').innerHTML = ICON.fsOff; $('gear').innerHTML = ICON.gear;
+$('pclose').innerHTML = ICON.close;
+$('like').firstElementChild.innerHTML = ICON.heart;
+$('dislike').firstElementChild.innerHTML = ICON.down;
+$('web').firstElementChild.innerHTML = ICON.open;
+applyVol(); wake();
+window.addEventListener('pywebviewready', async () => {
+  try {
+    const st = await pywebview.api.get_state();
+    S.settings = st.settings; S.opts = st.options; S.first = st.first_run;
+  } catch (e) { S.settings = {autonext: true}; }
+  renderTabs(); startFeed();
+  if (S.first && S.opts) openPanel();
+});
+
+/* ---------- приветствие, помощь, мобильные мелочи ---------- */
+const WK = 'rendz.welcomed';
+const seenWelcome = () => { try { return !!localStorage.getItem(WK); } catch (e) { return false; } };
+function closeWelcome(){ try { localStorage.setItem(WK, '1'); } catch (e) {} $('welcome').classList.remove('show'); wake(); }
+$('wgo').onclick = closeWelcome;
+$('help').onclick = () => { $('welcome').scrollTop = 0; $('welcome').classList.add('show'); };
+window.addEventListener('keydown', e => {
+  if (!$('welcome').classList.contains('show')) return;
+  e.stopPropagation(); if (['Enter', 'Space', 'Escape'].includes(e.code)){ e.preventDefault(); closeWelcome(); }
+}, true);
+if (!document.documentElement.requestFullscreen) $('fs').style.display = 'none';
+if (!seenWelcome()) $('welcome').classList.add('show');
+</script></body></html>
