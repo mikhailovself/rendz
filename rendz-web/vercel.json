@@ -1,0 +1,1 @@
+{ "functions": { "api/clip.py": { "maxDuration": 30 } } }
