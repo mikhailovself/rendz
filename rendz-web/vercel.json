@@ -1,1 +1,1 @@
-{ "functions": { "api/clip.py": { "maxDuration": 30 } } }
+{ "functions": { "api/find.py": { "maxDuration": 30 } } }

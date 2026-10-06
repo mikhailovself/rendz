@@ -1,4 +1,4 @@
-// Заменяет pywebview.api: настройки и вкусы — в localStorage, клипы — через /api/clip
+// Заменяет pywebview.api: настройки и вкусы — в localStorage, клипы — через /api/find
 (() => {
   const K = 'rendz.';
   const rd = (k, d) => { try { const v = localStorage.getItem(K + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
@@ -51,7 +51,7 @@
       let err = '';
       for (let i = 0; i < 3; i++){
         try {
-          const j = await (await fetch('/api/clip?' + p)).json();
+          const j = await (await fetch('/api/find?' + p)).json();
           if (j.error){ err = j.error; continue; }
           if (seen.includes(j.key)){ continue; }
           seen.push(j.key); metas[j.id] = {key: j.key, names: j.names, genres: j.genres, country: j.country, url: j.url, rating: 0};
